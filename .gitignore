@@ -1,0 +1,25 @@
+# Carpeta de entorno virtual
+venv/
+__pycache__/
+*.pyc
+
+# Archivos de build
+build/
+dist/
+*.spec
+
+# Logs
+*.log
+
+# Archivos temporales de PyInstaller
+*.manifest
+*.dll
+*.pyd
+
+# Archivos de VS Code u otros editores
+.vscode/
+.idea/
+
+# Archivos del sistema
+Thumbs.db
+.DS_Store
