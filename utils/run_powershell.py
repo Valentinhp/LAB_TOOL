@@ -1,38 +1,12 @@
-﻿# utils/run_powershell.py
-"""
-Wrapper robusto para lanzar scripts PowerShell (.ps1) desde Python.
-
-Devuelve SIEMPRE una tupla:
-    (stdout: str, stderr: str, exit_code: int)
-
-Ventajas frente a la versión anterior
-─────────────────────────────────────
-• Compatibilidad con PowerShell 5 (powershell.exe) y PowerShell Core (pwsh.exe);
-  detecta automáticamente cuál está disponible.
-• Permite pasar cwd (directorio de trabajo) y env (variables extra) opcionales,
-  que se mezclan con las del sistema.
-• Controla timeout (por defecto 300 s) e informa si expira.
-• Convierte stdout / stderr None → "" para evitar AttributeError.
-• Registra el comando, el exit-code y la duración en labtool.log.
-• Sigue funcionando en Python 3.6+ (usa stdout=PIPE / stderr=PIPE).
-
-Uso rápido
-──────────
-    out, err, code = run_powershell_script(
-        r"powershell\mi_script.ps1",
-        "-Foo", "Bar",
-        cwd=r"C:\ruta\de\trabajo",
-        env={"MI_VAR": "1"},
-        timeout=120
-    )
-"""
-
+﻿
 from __future__ import annotations
 import os
+import sys
 import time
 import shutil
 import logging
 import subprocess
+import tempfile
 import shlex
 from typing import Tuple, List, Optional, Mapping
 
@@ -45,7 +19,7 @@ def _powershell_exe() -> str:
         path = shutil.which(exe)
         if path:
             return path
-    raise FileNotFoundError("No se encontró PowerShell ('pwsh.exe' ni 'pwsh.exe') en PATH.")
+    raise FileNotFoundError("No se encontró PowerShell ('pwsh.exe' ni 'powershell.exe') en PATH.")
 
 
 def run_powershell_script(
@@ -69,6 +43,16 @@ def run_powershell_script(
         Tuple[str, str, int]: stdout, stderr, returncode
     """
     exe = _powershell_exe()
+
+    # Extraer script temporal si está embebido en PyInstaller
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+        embedded_path = os.path.join(base_path, path)
+        if os.path.isfile(embedded_path):
+            temp_dir = tempfile.mkdtemp()
+            temp_script = os.path.join(temp_dir, os.path.basename(path))
+            shutil.copyfile(embedded_path, temp_script)
+            path = temp_script
 
     cmd: List[str] = [
         exe,
@@ -119,5 +103,4 @@ def run_powershell_script(
 
 
 # ——— Compatibilidad hacia atrás ———
-# Muchos módulos aún importan `run_script`: brindamos un alias
 run_script = run_powershell_script
